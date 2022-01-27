@@ -24,11 +24,11 @@ from Novel_CNN import *
 epochs = 50    # training epoch
 batch_size  = 40    # training batch size
 combin_num = 10    # combin EEG and noise ? times
-denoise_network = 'Simple_CNN'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
+denoise_network = 'fcNN'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
 noise_type = 'EOG'
 
 
-result_location = r'E:/experiment_data/EEG_EEGN/'     #  Where to export network results   ############ change it to your own location #########
+result_location = r'./EEG_EEGN/'     #  Where to export network results   ############ change it to your own location #########
 foldername = 'EMG_unet112dense_10_rmsp_test'            # the name of the target folder (should be change when we want to train a new network)
 os.environ['CUDA_VISIBLE_DEVICES']='0'
 save_train = False
@@ -56,7 +56,7 @@ denoiseNN = tf.keras.models.load_model(path)
 '''
 #################################################### 数据输入 Import data #####################################################
 
-file_location = 'E:/experiment_data/EEGdenoiseNet/data/'                    ############ change it to your own location #########
+file_location = '../data/'                    ############ change it to your own location #########
 if noise_type == 'EOG':
   EEG_all = np.load( file_location + 'EEG_all_epochs.npy')                              
   noise_all = np.load( file_location + 'EOG_all_epochs.npy') 
@@ -69,6 +69,7 @@ elif noise_type == 'EMG':
 i = 1     # We run each NN for 10 times to increase  the  statistical  power  of  our  results
 noiseEEG_train, EEG_train, noiseEEG_val, EEG_val, noiseEEG_test, EEG_test, test_std_VALUE = prepare_data(EEG_all = EEG_all, noise_all = noise_all, combin_num = 10, train_per = 0.8, noise_type = noise_type)
 
+print(noiseEEG_train.shape, EEG_train.shape, noiseEEG_val.shape, EEG_val.shape, noiseEEG_test.shape, EEG_test.shape)
 
 if denoise_network == 'fcNN':
   model = fcNN(datanum)
