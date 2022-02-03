@@ -22,44 +22,37 @@ def train_step(model, noiseEEG_batch, EEG_batch, optimizer , denoise_network, ba
     #本次训练参数初始化  parameter initialization in one step
 
     mse_grads = 0
-    m_loss = 0
-      
- 
     with tf.GradientTape() as loss_tape:
-    
-        M_loss =  0
-        for x in range(noiseEEG_batch.shape[0]):
-    
-            noiseeeg_batch,eeg_batch =  noiseEEG_batch[x] , EEG_batch[x]
+        batch_size = noiseEEG_batch.shape[0]
+        if denoise_network == 'fcNN':
+                noiseeeg_batch = tf.reshape(noiseEEG_batch, [batch_size,datanum])
+        else:
+                noiseeeg_batch = tf.reshape(noiseEEG_batch, [batch_size,datanum,1])
 
-            if denoise_network == 'fcNN':
-                noiseeeg_batch = tf.reshape(noiseeeg_batch, [1,datanum])
-            else:
-                noiseeeg_batch = tf.reshape(noiseeeg_batch, [1,datanum,1])
-
-            eeg_batch=tf.reshape(eeg_batch, [1,datanum,1])
-            denoiseoutput = model(noiseeeg_batch)
-            denoiseoutput = tf.reshape(denoiseoutput, [1,datanum,1])                          
-
-            m_loss = denoise_loss_mse(denoiseoutput,eeg_batch)   
-            M_loss += m_loss
-
-    
-        M_loss = M_loss / float(noiseEEG_batch.shape[0]) 
-        
-        # calculate gradient
+        eeg_batch=tf.reshape(EEG_batch, [batch_size,datanum,1])
+        denoiseoutput = model(noiseeeg_batch)
+        print(denoiseoutput.shape)
+        denoiseoutput = tf.reshape(denoiseoutput, [batch_size,datanum,1]) 
+        M_loss = denoise_loss_mse(denoiseoutput,eeg_batch)
         mse_grads = loss_tape.gradient(M_loss, model.trainable_variables)
-        #bp
         optimizer.apply_gradients(zip(mse_grads, model.trainable_variables))
 
-    return  M_loss,  mse_grads[0]  #每一条EEG的loss从此输出
+    return  M_loss,  mse_grads[0]
 
-def test_step(model, noiseEEG_test, EEG_test):
-
+def test_step(model, noiseEEG_test, EEG_test, test = False):
   denoiseoutput_test = model(noiseEEG_test)
+  batch_size = denoiseoutput_test.shape[0]
+  datanum = denoiseoutput_test.shape[1]
+  EEG_test=tf.reshape(EEG_test,[batch_size,datanum,1])
+  denoiseoutput_test = tf.reshape(denoiseoutput_test, [batch_size,datanum,1]) 
   loss = denoise_loss_mse(EEG_test, denoiseoutput_test)
   #loss_rrmset = denoise_loss_rrmset(denoiseoutput_test, EEG_test)
-
+  if test:
+    mse_loss = denoise_loss_mse(denoiseoutput_test, EEG_test)
+    rmset_loss = denoise_loss_rrmset(denoiseoutput_test, EEG_test)
+    rmsepsd_loss = denoise_loss_rrmsepsd(denoiseoutput_test, EEG_test)
+    acc = average_correlation_coefficient(denoiseoutput_test, EEG_test)
+    print(f"MSE loss = {mse_loss}, RRMSET Loss ={rmset_loss}, RRMSE_spec Loss = {rmsepsd_loss}, ACC = {acc}")
   return denoiseoutput_test, loss#, loss_rrmset
 
 
@@ -102,7 +95,7 @@ def train(model, noiseEEG,EEG, noiseEEG_val, EEG_val, epochs, batch_size,optimiz
 
                 # convert variables to usable format
                 mse_grads_batch = tf.reduce_mean(tf.sqrt(tf.reduce_sum(tf.square(mse_grads_batch)))).numpy()
-                mse_loss_batch = tf.reduce_mean(mse_loss_batch).numpy()
+                mse_loss_batch = mse_loss_batch.numpy()
 
                 # store history 
                 train_mse += mse_loss_batch/float(batch_num)

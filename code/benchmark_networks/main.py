@@ -21,7 +21,7 @@ from Novel_CNN import *
 # Here is the main part of the denoising neurl network, We can adjust all the parameter in the user-defined area.
 #####################################################自定义 user-defined ########################################################
 
-epochs = 50    # training epoch
+epochs = 60   # training epoch
 batch_size  = 40    # training batch size
 combin_num = 10    # combin EEG and noise ? times
 denoise_network = 'fcNN'    # fcNN & Simple_CNN & Complex_CNN & RNN_lstm  & Novel_CNN 
@@ -69,7 +69,6 @@ elif noise_type == 'EMG':
 i = 1     # We run each NN for 10 times to increase  the  statistical  power  of  our  results
 noiseEEG_train, EEG_train, noiseEEG_val, EEG_val, noiseEEG_test, EEG_test, test_std_VALUE = prepare_data(EEG_all = EEG_all, noise_all = noise_all, combin_num = 10, train_per = 0.8, noise_type = noise_type)
 
-print(noiseEEG_train.shape, EEG_train.shape, noiseEEG_val.shape, EEG_val.shape, noiseEEG_test.shape, EEG_test.shape)
 
 if denoise_network == 'fcNN':
   model = fcNN(datanum)
@@ -95,7 +94,7 @@ saved_model, history = train(model, noiseEEG_train, EEG_train, noiseEEG_val, EEG
                       epochs, batch_size,optimizer, denoise_network, 
                       result_location, foldername , train_num = str(i))
 
-#denoised_test, test_mse = test_step(saved_model, noiseEEG_test, EEG_test)
+denoised_test, test_mse = test_step(saved_model, noiseEEG_test, EEG_test, test = True)
 
 # save signal
 save_eeg(saved_model, result_location, foldername, save_train, save_vali, save_test, 
@@ -103,6 +102,6 @@ save_eeg(saved_model, result_location, foldername, save_train, save_vali, save_t
                     train_num = str(i))
 np.save(result_location +'/'+ foldername + '/'+ str(i)  +'/'+ "nn_output" + '/'+ 'loss_history.npy', history)
 
-#save model
-# path = os.path.join(result_location, foldername, str(i+1), "denoise_model")
-# tf.keras.models.save_model(saved_model, path)
+# #save model
+path = os.path.join(result_location, foldername, str(i+1), "denoise_model")
+tf.keras.models.save_model(saved_model, path)
